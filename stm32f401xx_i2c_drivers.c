@@ -125,14 +125,16 @@ void I2C_Init(I2C_Handle_t *pI2CHandle)
 	if(pI2CHandle->I2C_Config.I2C_SCLSpeed<=I2C_SCLSPEED_SM)
 	{
 		// stand mode(100khz)
+		// by default the ccr is in std mode so no need to set it
 		ccr_val=(pclk1/(2*pI2CHandle->I2C_Config.I2C_SCLSpeed));
-		tempreg|=(ccr_val&0x0fff);
+		tempreg|=(ccr_val&0x0fff);// masking the remaining bits other than ccr 12 bits and storing into ccr register
+
 	}
 	else
 	{
 		//fast mode
-		tempreg|=(1<<I2C_CCR_FS);
-		tempreg|=(pI2CHandle->I2C_Config.I2C_FMDutyCycle<<I2C_CCR_DUTY);
+		tempreg|=(1<<I2C_CCR_FS);// setting the 15th bit of ccr in fast mode
+		tempreg|=(pI2CHandle->I2C_Config.I2C_FMDutyCycle<<I2C_CCR_DUTY);// setting the duty cycle of ccr
 		if(pI2CHandle->I2C_Config.I2C_FMDutyCycle==I2C_FMDUTY_2)
 		{
 			ccr_val=(pclk1/(3*pI2CHandle->I2C_Config.I2C_SCLSpeed));
@@ -159,6 +161,41 @@ void I2C_Init(I2C_Handle_t *pI2CHandle)
 		tempreg=(((pclk1/1000000U)*300)/1000)+1;
 	}
 	pI2CHandle->pI2Cx->TRISE=(tempreg&0x03f);
+
+
+}
+
+void I2C_SendData(I2C_Handle_t *pI2CHandle,uint8_t *pTxBuffer,uint32_t Len,uint8_t Slaveaddr,uint8_t Sr)
+{
+	pI2CHandle->pI2Cx->CR1|=(1<<I2C_CR1_START);// start condition
+	while(! I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_SB));// checking start condition by using SB flag
+
+
+		Slaveaddr=Slaveaddr<<1;
+		Slaveaddr&=~(1);//bit 0 is 0 for write
+		pI2CHandle->pI2Cx->DR=Slaveaddr;
+	while(! I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_ADDR));
+	 uint32_t DummyRead=pI2CHandle->pI2Cx->SR1;
+	 DummyRead=pI2CHandle->pI2Cx->SR2;
+	 (void)DummyRead;
+	 while(Len>0)
+	 {
+		 while(! I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_TXE));
+
+		 pI2CHandle->pI2Cx->DR=*pTxBuffer;
+		 pTxBuffer++;
+		 Len--;
+
+	 }
+	 // checking both txe flag and bty flag to ensure that all data is tarnsfered from data register and shift register;
+	 while (! I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_TXE));
+	 while (! I2C_GetFlagStatus(pI2CHandle->pI2Cx, I2C_FLAG_BTF));
+	 // generate stop condition
+	 if(Sr==DISABLE)
+	 {
+		 pI2CHandle->pI2Cx->CR1|=(1<<I2C_CR1_STOP);
+	 }
+
 
 
 }
