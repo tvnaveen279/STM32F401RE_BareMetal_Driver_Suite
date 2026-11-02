@@ -10,6 +10,7 @@
 
 #include "stm32f401xx.h"
 
+
 typedef struct
 {
 	uint8_t	USART_Mode;
@@ -29,7 +30,79 @@ typedef struct
 {
 	USART_RegDef_t *pUSARTx;
 	USART_Config_t USART_Config;
+	uint8_t			*pTxBuffer;
+	uint8_t			*pRxBuffer;
+	uint32_t		RxLen;
+	uint32_t		TxLen;
+	uint8_t			TxBusyState;
+	uint8_t			RxBusyState;
+
 }USART_Handle_t;
+
+/*
+ * @USART_BusyStates
+ */
+#define	USART_READY			0
+#define	USART_BUSY_IN_RX	1
+#define	USART_BUSY_IN_TX	2
+/*
+ * @USART_EVENT MACROS
+ */
+#define USART_EVENT_TX_CMPLT	0
+#define USART_EVENT_RX_CMPLT	1
+#define USART_EVENT_IDLE		2
+#define USART_EVENT_CTS			3
+#define USART_EVENT_PE			4
+#define USART_ERR_FE			5
+#define USART_ERR_NE			6
+#define USART_ERR_ORE			7
+
+/*
+ * bit positions USART_CR1
+ */
+#define USART_CR1_SBK			0
+#define USART_CR1_RWU			1
+#define USART_CR1_RE			2
+#define USART_CR1_TE			3
+#define USART_CR1_IDLEIE		4
+#define USART_CR1_RXNEIE		5
+#define USART_CR1_TCIE			6
+#define USART_CR1_TXEIE			7
+#define USART_CR1_PEIE			8
+#define USART_CR1_PS			9
+#define USART_CR1_PCE			10
+#define USART_CR1_WAKE			11
+#define USART_CR1_M				12
+#define USART_CR1_UE			13
+#define USART_CR1_OVER8			15
+
+/*
+ * @BIT [OSITIONS OF USART_CR2
+ */
+#define USART_CR2_ADD		0
+#define USART_CR2_LBDL		5
+#define USART_CR2_LBDIE		6
+#define USART_CR2_LBCL		8
+#define USART_CR2_CPHA		9
+#define USART_CR2_CPOL		10
+#define USART_CR2_CLKEN		11
+#define USART_CR2_STOP		12
+#define USART_CR2_LINEN		14
+/*
+ * BIT POSITIONS OF USART_CR3
+ */
+#define USART_CR3_EIE		0
+#define USART_CR3_IREN		1
+#define USART_CR3_IRLP		2
+#define USART_CR3_HDSEL		3
+#define USART_CR3_NACK		4
+#define USART_CR3_SCEN		5
+#define USART_CR3_DMAR		6
+#define USART_CR3_DMAT		7
+#define USART_CR3_RTSE		8
+#define USART_CR3_CTSE		9
+#define USART_CR3_CTSIE		10
+#define USART_CR3_ONEBIT	11
 
 
 /*
@@ -121,6 +194,14 @@ void USART_DeInit(USART_RegDef_t *pUSARTx);
  */
 void USART_SendData(USART_Handle_t *pUSARTHandle,uint8_t *pTxBuffer,uint32_t Len);
 void USART_ReceiveData(USART_Handle_t *pUSARTHandle,uint8_t *pRxBuffer,uint32_t Len);
+
+/*
+ * NON BLOCKING/INTERRUPT DAAT SEND AND RECEIVE
+ */
+uint8_t USART_SendDataIT(USART_Handle_t *pUSARTHandle,uint8_t *pTxBuffer,uint32_t Len);
+uint8_t USART_ReceiveDataIT(USART_Handle_t *pUSARTHandle,uint8_t *pRxBuffer,uint32_t Len);
+// callback event
+void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t AppEv);
 /*
  * IRQ Configuration and ISR handling
  */
